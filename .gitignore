@@ -6,4 +6,4 @@ CMakeFiles/
 imgui.ini
 compile_commands.json
 .cache/
-libStb_Image.a
+stb_image/libStb_Image.a
