@@ -8,12 +8,7 @@
 #include <vector>
 
 #include "../shader/shader.h"
-
-struct Vertex {
-    glm::vec3 position;
-    glm::vec3 normal;
-    glm::vec2 texCoords;
-};
+#include "vao.h"
 
 enum TextureType { DIFFUSE, SPECULAR };
 
@@ -34,7 +29,7 @@ class Mesh {
         void drawInstanced(Shader &shader, std::vector<glm::mat4> modelMatrices);
 
     private:
-        unsigned int vao;
+        VertexArray vao;
 
         void setupMesh();
 

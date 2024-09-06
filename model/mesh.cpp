@@ -1,5 +1,7 @@
 #include "mesh.h"
 
+#include "../inner/vao.h"
+
 Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures) {
     this->vertices = vertices;
     this->indices = indices;
@@ -9,32 +11,13 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std:
 }
 
 void Mesh::setupMesh() {
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    unsigned int vbo;
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);
-
-    unsigned int ebo;
-    glGenBuffers(1, &ebo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
+    vao.bind();
+    Buffer vbo(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data());
+    Buffer ebo(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data());
     
-    // Position
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)offsetof(Vertex, position));
-    glEnableVertexAttribArray(0);
-
-    // Normal
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)offsetof(Vertex, normal)); 
-    glEnableVertexAttribArray(1);
-
-    // Texture coordinate
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(5 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-    
-    glBindVertexArray(0);
+    vao.setBuffer(vbo);
+    vao.setBuffer(ebo);
+    vao.setDefaultAttribs();
 }
 
 void Mesh::drawInstanced(Shader &shader, std::vector<glm::mat4> modelMatrices) {
@@ -66,7 +49,7 @@ void Mesh::drawInstanced(Shader &shader, std::vector<glm::mat4> modelMatrices) {
         shader.setMat4("models[" + std::to_string(i) + "]", modelMatrices[i]);
     }
 
-    glBindVertexArray(vao);
+    vao.bind();
     glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0, modelMatrices.size());
     glBindVertexArray(0);
 }
@@ -96,7 +79,7 @@ void Mesh::draw(Shader &shader) {
     }
     glActiveTexture(GL_TEXTURE0);
 
-    glBindVertexArray(vao);
+    vao.bind();
     glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 }

@@ -1,5 +1,7 @@
 #include "model.h"
 
+#include <iostream>
+
 void Model::draw(Shader &shader) {
 
     for(int i = 0; i < meshes.size(); i++) {

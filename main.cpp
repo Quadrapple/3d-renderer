@@ -12,6 +12,9 @@
 #include "shader/shader.h"
 #include "scene/camera.h"
 #include "scene/scene.h"
+#include "inner/buffer.h"
+#include "inner/context.h"
+#include "inner/vao.h"
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
@@ -29,6 +32,7 @@ float prevMouseY = 0.0;
 bool blockMouseInput = false;
 bool keyPressed = false;
 
+static Context *ctx;
 Scene *scene;
 Camera *camera;
 
@@ -48,48 +52,48 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
 void processInput(GLFWwindow *window) {
     const float cameraSpeed = 4.0f * deltaTime;
 
-    if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+    if(glfwGetKey(ctx->window, GLFW_KEY_W) == GLFW_PRESS) {
         camera->moveForward(cameraSpeed);
     }
 
-    if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+    if(glfwGetKey(ctx->window, GLFW_KEY_S) == GLFW_PRESS) {
         camera->moveForward(-cameraSpeed);
     }
 
-    if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+    if(glfwGetKey(ctx->window, GLFW_KEY_D) == GLFW_PRESS) {
         camera->moveRight(cameraSpeed);
     }
 
-    if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+    if(glfwGetKey(ctx->window, GLFW_KEY_A) == GLFW_PRESS) {
         camera->moveRight(-cameraSpeed);
     }
 
-    if(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+    if(glfwGetKey(ctx->window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
         camera->moveUp(-cameraSpeed);
     }
     
-    if(glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+    if(glfwGetKey(ctx->window, GLFW_KEY_SPACE) == GLFW_PRESS) {
         camera->moveUp(cameraSpeed);
     }
 
-    if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-        glfwSetWindowShouldClose(window, true);
+    if(glfwGetKey(ctx->window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+        glfwSetWindowShouldClose(ctx->window, true);
     }
 
-    if(glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) {
+    if(glfwGetKey(ctx->window, GLFW_KEY_P) == GLFW_PRESS) {
         if(!keyPressed) {
             keyPressed = true;
         }
     }
 
-    if(glfwGetKey(window, GLFW_KEY_P) == GLFW_RELEASE) {
+    if(glfwGetKey(ctx->window, GLFW_KEY_P) == GLFW_RELEASE) {
         if(keyPressed) {
             blockMouseInput = !blockMouseInput;
 
             if(!blockMouseInput) {
-                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+                glfwSetInputMode(ctx->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
             } else {
-                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+                glfwSetInputMode(ctx->window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
             }
 
             keyPressed = false;        
@@ -127,16 +131,15 @@ inline void calcDeltaTime() {
     prevTime = time;
 }
 
-void drawLinesArray(unsigned int vao, Shader &gridShader, unsigned int sideLen) {
+void drawLinesArray(VertexArray &vao, Shader &gridShader, unsigned int sideLen) {
     gridShader.use();
     gridShader.setVec3("color", 1.0, 1.0, 1.0);
 
-    glBindVertexArray(vao);
+    vao.bind();
     glDrawArrays(GL_LINES, 0, sideLen * 4 + 1);
-    glBindVertexArray(0);
 }
 
-unsigned int createGrid(int sideLen) {
+VertexArray createGrid(int sideLen) {
     std::vector<glm::vec3> vertices;
 
     vertices.reserve(sideLen * 4);
@@ -159,19 +162,10 @@ unsigned int createGrid(int sideLen) {
         vertices[sideLen*2 + i*2 + 1] = glm::vec3(rHsl + i, 0, rHsl);
     }
 
-    unsigned int vao;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    unsigned int vbo;
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
-    glEnableVertexAttribArray(0);
-    
-    glBindVertexArray(0);
+    VertexArray vao;
+    Buffer vbo(GL_ARRAY_BUFFER, vertices);
+    vao.setBuffer(vbo);
+    vao.addAttrib(VertexAttrib{3, sizeof(float) * 3, GL_FLOAT, 0});
 
     return vao;
 }
@@ -249,31 +243,14 @@ float floatRandom() {
 }
 
 int main(int argc, char *argv[]) {
-    if(!glfwInit()) {
-        std::cout << "GLFW failed to init=(" << std::endl;
-        return -1;
-    }
-
-    //Basic setup
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-    GLFWwindow *window = glfwCreateWindow(wWidth, wHeight, "Asteroids", NULL, NULL);
-
-    glfwMakeContextCurrent(window);
-
-    if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        std::cout << "GLAD failed to load =(" << std::endl;
-        return -1;
-    }
+    ctx = new Context("Renderer", glm::vec2(800, 600));
 
     glViewport(0, 0, wWidth, wHeight);
 
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetFramebufferSizeCallback(ctx->window, framebuffer_size_callback);
+    glfwSetCursorPosCallback(ctx->window, mouse_callback);
 
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(ctx->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
@@ -285,7 +262,7 @@ int main(int argc, char *argv[]) {
 
     ImGuiIO& io = ImGui::GetIO();
 
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplGlfw_InitForOpenGL(ctx->window, true);
     ImGui_ImplOpenGL3_Init("#version 330 core");
 
     //Scene setup----------------------------------
@@ -343,27 +320,12 @@ int main(int argc, char *argv[]) {
         1.0, 1.0, 1.0, 1.0,
     };
 
-    unsigned int screenQuad;
+    VertexArray screenQuad;
     {
-        //Create and bind a VAO
-        glGenVertexArrays(1, &screenQuad);
-        glBindVertexArray(screenQuad);
-
-        //Create a VBO and bind it
-        unsigned int vbo;
-        glGenBuffers(1, &vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-
-        glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
-
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(0);
-
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
-        glEnableVertexAttribArray(1);
-
-        //Unbind VAO
-        glBindVertexArray(0);
+        Buffer vbo(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices);
+        screenQuad.setBuffer(vbo);
+        screenQuad.addAttrib(VertexAttrib{2, sizeof(float) * 4, GL_FLOAT, (void*)0});
+        screenQuad.addAttrib(VertexAttrib{2, sizeof(float) * 4, GL_FLOAT, (void*)(2 * sizeof(float))});
     }
     //------------------------------------------------
 
@@ -372,9 +334,9 @@ int main(int argc, char *argv[]) {
     char filename[64];
     for(int i = 0; i < 64; i++) filename[i] = ' ';
 
-    unsigned int grid = createGrid(l);
-    while(!glfwWindowShouldClose(window)) {
-        processInput(window);
+    VertexArray grid = createGrid(l);
+    while(!glfwWindowShouldClose(ctx->window)) {
+        processInput(ctx->window);
         calcDeltaTime();
 
         //ImGui render----------------------------
@@ -417,7 +379,7 @@ int main(int argc, char *argv[]) {
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        glBindVertexArray(screenQuad);
+        screenQuad.bind();
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, pixelFb.color);
 
@@ -431,7 +393,7 @@ int main(int argc, char *argv[]) {
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        glfwSwapBuffers(window);
+        glfwSwapBuffers(ctx->window);
         glfwPollEvents();
     }
 

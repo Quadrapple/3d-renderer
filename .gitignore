@@ -5,3 +5,4 @@ Makefile
 CMakeFiles/
 imgui.ini
 compile_commands.json
+.cache/

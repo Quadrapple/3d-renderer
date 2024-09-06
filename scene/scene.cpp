@@ -1,22 +1,14 @@
 #include "scene.h"
 
-Scene::Scene() {
-    //Create and fill a UBO
-    glGenBuffers(1, &uboViewProjection);
-    glBindBuffer(GL_UNIFORM_BUFFER, uboViewProjection);
-
-    glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), NULL, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
-    glBindBufferBase(GL_UNIFORM_BUFFER, 0, uboViewProjection);
-
+Scene::Scene() : viewProjection(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), NULL) {
+    viewProjection.bindBufferBase(0);
 }
 
 void Scene::useCamera(Camera *camera) {
     this->camera = camera;
-
     glm::mat4 projection = camera->projectionMatrix();
-    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(projection));
+
+    viewProjection.bufferSubData(0, sizeof(glm::mat4), glm::value_ptr(projection));
 }
 
 void Scene::addInstancedObject(Object &object, Shader &shader) {
@@ -36,7 +28,7 @@ void Scene::addInstancedObject(Object &object, Shader &shader) {
         return;
     }
     vector->second->push_back(&object);
-    std::cout << "booom!" << std::endl;
+    std::cout << "Object added" << std::endl;
 }
 
 void Scene::render() {
@@ -44,9 +36,7 @@ void Scene::render() {
     glm::mat4 view = camera->viewMatrix();
 
     //Set view matrix in uniform block
-    glBindBuffer(GL_UNIFORM_BUFFER, uboViewProjection);
-    glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(view));
-    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    viewProjection.bufferSubData(sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(view));
 
     //Instanced rendering
     for(Drawable d: drawables) {

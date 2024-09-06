@@ -1,6 +1,7 @@
 #ifndef SCENE_H
 #define SCENE_H
 
+#include "../inner/buffer.h"
 #include "object.h"
 #include "camera.h"
 
@@ -36,7 +37,7 @@ class Scene {
         void render();
     private:
         void setViewMatrix();
-        unsigned int uboViewProjection; //Projection + view matrices uniform block
+        Buffer viewProjection; //Projection + view matrices uniform block
         std::unordered_map<Drawable, std::vector<Object*>*, DrawableHasher> instances;
 };
 
