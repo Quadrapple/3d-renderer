@@ -1,22 +1,26 @@
-#include "context.h"
+#include "state.h"
 
 #include <stdexcept>
 #include <iostream>
 
-Context::Context(std::string title, glm::uvec2 size) {
+State::State(std::string title, glm::uvec2 size) {
     initGLFW();
     createWindow(title, size);
     initGLAD();
 
-    windowSize = size;
-    plswork[0] = this;
+    viewportSize = size;
+    hack[0] = this;
 }
 
-Context& Context::getContext() {
-    return *plswork[0];
+State& State::getContext() {
+    return *hack[0];
 }
 
-void Context::initGLFW() {
+float State::getDeltaTime() {
+    return deltaTime;
+}
+
+void State::initGLFW() {
     if(!glfwInit()) {
         throw std::runtime_error("GLFW init failed");
     }
@@ -26,13 +30,13 @@ void Context::initGLFW() {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 }
 
-void Context::initGLAD() {
+void State::initGLAD() {
     if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         throw std::runtime_error("GLAD init failed");
     }
 }
 
-void Context::createWindow(std::string title, glm::uvec2 size) {
+void State::createWindow(std::string title, glm::uvec2 size) {
     window = glfwCreateWindow(size.x, size.y, "Asteroids", NULL, NULL);
     glfwMakeContextCurrent(window);
 
@@ -41,14 +45,14 @@ void Context::createWindow(std::string title, glm::uvec2 size) {
     }
 }
 
-void Context::bindBuffer(GLenum target, unsigned int id) {
+void State::bindBuffer(GLenum target, unsigned int id) {
     if(targets[target] != id) {
         glBindBuffer(target, id);
         targets[target] = id;
     }
 }
 
-void Context::bindBufferBase(GLenum target, unsigned int index, unsigned int id) {
+void State::bindBufferBase(GLenum target, unsigned int index, unsigned int id) {
     BindingPoint bp{target, index};
     if(bindingPoints[bp] != id) {
         glBindBufferBase(target, index, id);
@@ -56,30 +60,35 @@ void Context::bindBufferBase(GLenum target, unsigned int index, unsigned int id)
     }
 }
 
-void Context::bindVertexArray(unsigned int id) {
+void State::bindVertexArray(unsigned int id) {
     if(boundVaoID != id) {
         glBindVertexArray(id);
         boundVaoID = id;
     }
 }
 
-void Context::enable(GLenum option) {
+void State::enable(GLenum option) {
     if(enabled[option] == false) {
         glEnable(option);
         enabled[option] = true;
     }
 }
 
-void Context::disable(GLenum option) {
+void State::disable(GLenum option) {
     if(enabled[option] == true) {
         glDisable(option);
         enabled[option] = false;
     }
 }
 
-void Context::useProgram(unsigned int id) {
+void State::useProgram(unsigned int id) {
     if(usedShaderID != id) {
         glUseProgram(id);
         usedShaderID = id;
     }
+}
+
+void State::setViewport(glm::uvec2 size) {
+    glViewport(0, 0, size.x, size.y);
+    this->viewportSize = size;
 }

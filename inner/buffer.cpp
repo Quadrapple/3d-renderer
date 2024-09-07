@@ -1,6 +1,6 @@
 #include "buffer.h"
 
-#include "context.h"
+#include "state.h"
 #include <iostream>
 
 Buffer::Buffer() : id(0), size(0) {}
@@ -12,19 +12,19 @@ Buffer::Buffer(GLenum type, unsigned int size, const void* data) {
 }
 
 void Buffer::bind() {
-    Context::getContext().bindBuffer(type, id);
+    State::getContext().bindBuffer(type, id);
 }
 
 void Buffer::bindAs(GLenum target) {
-    Context::getContext().bindBuffer(target, id);
+    State::getContext().bindBuffer(target, id);
 }
 
 void Buffer::bindBufferBase(unsigned int index) {
-    Context::getContext().bindBufferBase(type, index, id);
+    State::getContext().bindBufferBase(type, index, id);
 }
 
 void Buffer::bindBufferBaseAs(GLenum target, unsigned int index) {
-    Context::getContext().bindBufferBase(target, index, id);
+    State::getContext().bindBufferBase(target, index, id);
 }
 
 void Buffer::bufferData(unsigned int size, const void* data) {

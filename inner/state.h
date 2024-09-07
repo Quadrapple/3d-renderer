@@ -27,10 +27,10 @@ struct BindingPointHasher {
     }
 };
 
-class Context {
+class State {
     public:
         GLFWwindow *window;
-        Context(std::string title, glm::uvec2 size);
+        State(std::string title, glm::uvec2 size);
 
         //Map of target-buffer binds
         std::unordered_map<GLenum, unsigned int> targets;
@@ -50,18 +50,25 @@ class Context {
         static const unsigned int MAJOR_VER = 3;
         static const unsigned int MINOR_VER = 3;
 
-        static inline std::unordered_map<unsigned int, Context*> plswork;
-        static Context& getContext();
+        static inline std::unordered_map<unsigned int, State*> hack;
+        static State& getContext();
+
+        float getDeltaTime();
 
         void bindBuffer(GLenum target, unsigned int id);
         void bindBufferBase(GLenum target, unsigned int index, unsigned int id);
         void bindVertexArray(unsigned int id);
         void useProgram(unsigned int id);
 
+        void setViewport(glm::uvec2 size);
+
         void enable(GLenum option);
         void disable(GLenum option);
+    protected:
+        float deltaTime;
+        float prevTime;
     private:
-        glm::uvec2 windowSize;
+        glm::uvec2 viewportSize;
 
         static void initGLFW();
         static void initGLAD();

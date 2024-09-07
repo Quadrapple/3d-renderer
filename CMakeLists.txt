@@ -11,7 +11,7 @@ add_executable(${PROJECT_NAME}
     shader/shader.cpp shader/shader_loader.cpp
     model/mesh.cpp model/model.cpp 
     scene/object.cpp scene/scene.cpp scene/camera.cpp 
-    inner/context.cpp inner/buffer.cpp inner/vao.cpp
+    inner/state.cpp inner/buffer.cpp inner/vao.cpp inner/event_handler.cpp
     imgui/imgui.cpp imgui/imgui_demo.cpp imgui/imgui_draw.cpp imgui/imgui_impl_glfw.cpp imgui/imgui_impl_opengl3.cpp imgui/imgui_tables.cpp imgui/imgui_widgets.cpp)
 
 add_subdirectory(stb_image)

@@ -1,5 +1,7 @@
 #include "scene.h"
 
+#include <iostream>
+
 Scene::Scene() : viewProjection(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), NULL) {
     viewProjection.bindBufferBase(0);
 }

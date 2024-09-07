@@ -1,4 +1,5 @@
 #include "camera.h"
+#include "event_handler.h"
 
 #include <iostream>
 
@@ -9,7 +10,12 @@ Camera::Camera(glm::vec3 position, glm::vec3 direction, glm::vec3 up) {
     this->fov = M_PIf / 2;
 
     calcPitchYaw(direction);
+
+    EventHandler::addListener((CursorListener*)this);
+    EventHandler::addListener((KeyHoldListener*)this);
+    debug();
 }
+
 
 glm::vec3 Camera::getPosition() const {
     return position;
@@ -52,7 +58,7 @@ void Camera::changeDirection(float deltaYaw, float deltaPitch) {
 
 void Camera::calcPitchYaw(glm::vec3 direction) {
     pitch = asin(direction.y);
-    yaw = acos(direction.x / cos(pitch));
+    yaw = atan2(direction.z, direction.x);
 }
 
 void Camera::setYaw(float yaw) {
@@ -97,6 +103,7 @@ void Camera::moveUp(float distance) {
 }
 
 glm::mat4 Camera::viewMatrix() {
+    //debug();
     return glm::lookAt(position, position + direction, up);
 }
 
@@ -112,7 +119,33 @@ void Camera::setFov(float fov) {
     this->fov = fov;
 }
 
+void Camera::onCursorMove(Cursor cursor) {
+    float xOffset = cursor.pos.x - cursor.prevPos.x;
+    float yOffset = cursor.prevPos.y - cursor.pos.y;
+
+    changeDirection(xOffset * sensitivity, yOffset * sensitivity);
+}
+
+void Camera::onKeyHold(const bool keysHeld[]) {
+    const float cameraSpeed = 4.0f * State::getContext().getDeltaTime();
+    if(keysHeld[GLFW_KEY_W]) {
+        moveForward(cameraSpeed);
+    } else if(keysHeld[GLFW_KEY_S]) {
+        moveForward(-cameraSpeed);
+    }
+    if(keysHeld[GLFW_KEY_D]) {
+        moveRight(cameraSpeed);
+    } else if(keysHeld[GLFW_KEY_A]) {
+        moveRight(-cameraSpeed);
+    }
+    if(keysHeld[GLFW_KEY_SPACE]) {
+        moveUp(cameraSpeed);
+    } else if(keysHeld[GLFW_KEY_LEFT_SHIFT]) {
+        moveUp(-cameraSpeed);
+    }
+}
+
 void Camera::debug() {
-    std::cout << "POS: " << position.x << ", " << position.y << ", " << position.z << std::endl;
-    std::cout << "DIR: " << direction.x << ", " << direction.y << ", " << direction.z << std::endl;
+    //std::cout << "POS: " << position.x << ", " << position.y << ", " << position.z << std::endl;
+    std::cout << "DIR: " << direction.x << ", " << direction.y << ", " << direction.z << " | YAW: " << yaw << ", PIT: " << pitch << std::endl;
 }

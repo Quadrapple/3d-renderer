@@ -1,6 +1,6 @@
 #include "shader.h"
 
-#include "../inner/context.h"
+#include "state.h"
 #include "shader_loader.h"
 
 Shader::Shader(std::string vertexSource, std::string fragmentSource) {
@@ -8,7 +8,7 @@ Shader::Shader(std::string vertexSource, std::string fragmentSource) {
 }
 
 void Shader::use() { 
-    Context::getContext().useProgram(id);
+    State::getContext().useProgram(id);
 }
 
 //Uniform setters

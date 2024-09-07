@@ -1,6 +1,6 @@
 #include "vao.h"
 #include "buffer.h"
-#include "context.h"
+#include "state.h"
 
 VertexArray::VertexArray() : attribCount(0){
     glGenVertexArrays(1, &id);
@@ -14,7 +14,7 @@ VertexArray::VertexArray(Buffer& vertices) {
 }
 
 void VertexArray::bind() {
-    Context::getContext().bindVertexArray(id);
+    State::getContext().bindVertexArray(id);
 }
 
 void VertexArray::addAttrib(const VertexAttrib &attrib) {

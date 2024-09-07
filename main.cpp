@@ -8,12 +8,13 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "event_handler.h"
 #include "model/model.h"
 #include "shader/shader.h"
 #include "scene/camera.h"
 #include "scene/scene.h"
 #include "inner/buffer.h"
-#include "inner/context.h"
+#include "inner/state.h"
 #include "inner/vao.h"
 
 #include "imgui/imgui.h"
@@ -23,16 +24,9 @@
 int wWidth = 800;
 int wHeight = 600;
 
-float deltaTime;
-float prevTime;
-
-bool noMouseInputYet = true;
-float prevMouseX = 0.0;
-float prevMouseY = 0.0;
-bool blockMouseInput = false;
 bool keyPressed = false;
 
-static Context *ctx;
+static EventHandler *ctx;
 Scene *scene;
 Camera *camera;
 
@@ -42,93 +36,37 @@ struct Framebuffer {
     unsigned int rbo;
 };
 
-void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
-    glViewport(0, 0, width, height);
-
-    wWidth = width;
-    wHeight = height;
-}
-
-void processInput(GLFWwindow *window) {
-    const float cameraSpeed = 4.0f * deltaTime;
-
-    if(glfwGetKey(ctx->window, GLFW_KEY_W) == GLFW_PRESS) {
-        camera->moveForward(cameraSpeed);
-    }
-
-    if(glfwGetKey(ctx->window, GLFW_KEY_S) == GLFW_PRESS) {
-        camera->moveForward(-cameraSpeed);
-    }
-
-    if(glfwGetKey(ctx->window, GLFW_KEY_D) == GLFW_PRESS) {
-        camera->moveRight(cameraSpeed);
-    }
-
-    if(glfwGetKey(ctx->window, GLFW_KEY_A) == GLFW_PRESS) {
-        camera->moveRight(-cameraSpeed);
-    }
-
-    if(glfwGetKey(ctx->window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-        camera->moveUp(-cameraSpeed);
-    }
-    
-    if(glfwGetKey(ctx->window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-        camera->moveUp(cameraSpeed);
-    }
-
-    if(glfwGetKey(ctx->window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-        glfwSetWindowShouldClose(ctx->window, true);
-    }
-
-    if(glfwGetKey(ctx->window, GLFW_KEY_P) == GLFW_PRESS) {
-        if(!keyPressed) {
-            keyPressed = true;
+class ControlKeyListener : public KeyPressListener {
+    public:
+        ControlKeyListener() {
+            ctx->addListener((KeyPressListener*)this);
         }
-    }
-
-    if(glfwGetKey(ctx->window, GLFW_KEY_P) == GLFW_RELEASE) {
-        if(keyPressed) {
-            blockMouseInput = !blockMouseInput;
-
-            if(!blockMouseInput) {
-                glfwSetInputMode(ctx->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-            } else {
-                glfwSetInputMode(ctx->window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        virtual void onKeyboardAction(KeyPress press) override {
+            if(press.action != GLFW_PRESS) {
+                return;
             }
-
-            keyPressed = false;        
+            switch(press.key) {
+                case GLFW_KEY_P:
+                    if(keyPressed) {
+                        ctx->enableMouse();
+                    } else {
+                        ctx->disableMouse();
+                    }
+                    keyPressed  = !keyPressed;
+                    break;
+                case GLFW_KEY_ESCAPE:
+                    glfwSetWindowShouldClose(ctx->window, true);
+                    break;
+            }
         }
-    }
-}
+    private:
+        bool keyPressed = false;
+};
+ControlKeyListener *cl;
 
-void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
-    if(noMouseInputYet) {
-        prevMouseX = xpos;
-        prevMouseY = ypos;
-
-        noMouseInputYet = false;
-    }
-
-    float xOffset = xpos - prevMouseX;
-    float yOffset = prevMouseY - ypos;
-
-    prevMouseX = xpos;
-    prevMouseY = ypos;
-
-    const float sensitivity = 0.006;
-    if(!blockMouseInput) {
-        camera->changeDirection(xOffset * sensitivity, yOffset * sensitivity);
-    }
-}
 
 void dbg(const std::string &name) {
     std::cout << name << std::endl;
-}
-
-inline void calcDeltaTime() {
-    float time = glfwGetTime();
-    deltaTime = time - prevTime;
-    prevTime = time;
 }
 
 void drawLinesArray(VertexArray &vao, Shader &gridShader, unsigned int sideLen) {
@@ -243,17 +181,14 @@ float floatRandom() {
 }
 
 int main(int argc, char *argv[]) {
-    ctx = new Context("Renderer", glm::vec2(800, 600));
+    ctx = new EventHandler("Renderer", glm::vec2(800, 600));
+    ctx->setCursorMode(GLFW_CURSOR_DISABLED);
+    ctx->enable(GL_DEPTH_TEST);
 
-    glViewport(0, 0, wWidth, wHeight);
+    cl = new ControlKeyListener();
 
-    glfwSetFramebufferSizeCallback(ctx->window, framebuffer_size_callback);
-    glfwSetCursorPosCallback(ctx->window, mouse_callback);
-
-    glfwSetInputMode(ctx->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-    glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
 
     //ImGui setup
     IMGUI_CHECKVERSION();
@@ -336,9 +271,6 @@ int main(int argc, char *argv[]) {
 
     VertexArray grid = createGrid(l);
     while(!glfwWindowShouldClose(ctx->window)) {
-        processInput(ctx->window);
-        calcDeltaTime();
-
         //ImGui render----------------------------
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -353,7 +285,7 @@ int main(int argc, char *argv[]) {
                 scene->addInstancedObject(*obj, flatLight);
             }
             ImGui::SameLine();
-            ImGui::Text("%s", filename);
+            ImGui::Text("%.6f", ctx->getDeltaTime());
             ImGui::End();
         }
         //----------------------------------------
@@ -393,8 +325,8 @@ int main(int argc, char *argv[]) {
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        ctx->pollEvents();
         glfwSwapBuffers(ctx->window);
-        glfwPollEvents();
     }
 
     glfwTerminate();

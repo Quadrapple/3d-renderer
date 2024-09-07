@@ -5,12 +5,17 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <iostream>
+#include "event_handler.h"
 
-class Camera {
+class Camera : CursorListener, KeyHoldListener {
     public:
         Camera(glm::vec3 position, glm::vec3 direction = glm::vec3(1.0, 0.0, 0.0), glm::vec3 up = glm::vec3(0.0, 1.0, 0.0));
-        Camera() : position(0.0, 0.0, 0.0), direction(1.0, 0.0, 0.0), up(0.0, 1.0, 0.0) {}
+
+        Camera() : position(0.0, 0.0, 0.0), direction(1.0, 0.0, 0.0), up(0.0, 1.0, 0.0) {
+            EventHandler::addListener((CursorListener*)this);
+            EventHandler::addListener((KeyHoldListener*)this);
+            calcPitchYaw(this->direction);
+        }
 
         glm::vec3 getPosition() const;
         void changePosition(glm::vec3 deltaPos);
@@ -34,10 +39,13 @@ class Camera {
         glm::mat4 projectionMatrix();
         void debug();
 
+        virtual void onCursorMove(Cursor cursor) override;
+        virtual void onKeyHold(const bool keysHeld[]) override;
 
     private:
         float fov = 90.0;
         float aspectRatio = 800.0 / 600.0;
+        float sensitivity = 0.006;
 
         glm::vec3 position;
         glm::vec3 direction;
