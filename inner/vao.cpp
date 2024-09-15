@@ -40,8 +40,8 @@ void VertexArray::setDefaultAttribs() {
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)offsetof(Vertex, normal)); 
     glEnableVertexAttribArray(1);
 
-    //Texture coordinate
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(5 * sizeof(float)));
+    //TexCoord
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)offsetof(Vertex, texCoords));
     glEnableVertexAttribArray(2);
 }
 

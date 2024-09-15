@@ -43,6 +43,10 @@ class MouseClickListener {
         virtual void onMouseClick(MouseClick click) = 0;
 };
 
+class FrameListener {
+    public:
+        virtual void onFrameEnd() = 0;
+};
 //TODO: remove all statics where possible
 class EventHandler : public State {
     public:
@@ -56,11 +60,13 @@ class EventHandler : public State {
 
         //Not handled by GLFW
         static void processKeysHeldDown(GLFWwindow* window);
+        static void processFrameEnd(GLFWwindow *window);
 
         static void addListener(MouseClickListener* listener);
         static void addListener(KeyPressListener* listener);
         static void addListener(CursorListener* listener);
         static void addListener(KeyHoldListener* listener);
+        static void addListener(FrameListener* listener);
 
         void pollEvents();
 
@@ -80,6 +86,7 @@ class EventHandler : public State {
         static inline std::vector<KeyPressListener*> keyPressListeners;
         static inline std::vector<KeyHoldListener*> keyHoldListeners;
         static inline std::vector<CursorListener*> cursorListeners;
+        static inline std::vector<FrameListener*> frameListeners;
 
         void setCallbacks();
         void calcDeltaTime();

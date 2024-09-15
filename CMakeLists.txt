@@ -9,7 +9,7 @@ add_executable(${PROJECT_NAME}
     glad.c 
     main.cpp 
     shader/shader.cpp shader/shader_loader.cpp
-    model/mesh.cpp model/model.cpp 
+    model/mesh.cpp model/model.cpp model/model_loader.cpp model/texture_loader.cpp model/texture.cpp
     scene/object.cpp scene/scene.cpp scene/camera.cpp 
     inner/state.cpp inner/buffer.cpp inner/vao.cpp inner/event_handler.cpp
     imgui/imgui.cpp imgui/imgui_demo.cpp imgui/imgui_draw.cpp imgui/imgui_impl_glfw.cpp imgui/imgui_impl_opengl3.cpp imgui/imgui_tables.cpp imgui/imgui_widgets.cpp)

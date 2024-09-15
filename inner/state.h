@@ -41,14 +41,15 @@ class State {
         //Map of enabled things
         std::unordered_map<GLenum, bool> enabled;
 
-        //Map of textures
-        std::unordered_map<GLenum, unsigned int> textures;
+        //Map of texture bindings, 128 is an arbitrary value
+        unsigned int texUnitBindings[128];
 
         unsigned int boundVaoID = 0;
         unsigned int usedShaderID = 0;
+        unsigned int activeTexUnit = 0;
 
-        static const unsigned int MAJOR_VER = 3;
-        static const unsigned int MINOR_VER = 3;
+        static const unsigned int MAJOR_VER = 4;
+        static const unsigned int MINOR_VER = 0;
 
         static inline std::unordered_map<unsigned int, State*> hack;
         static State& getContext();
@@ -58,17 +59,25 @@ class State {
         void bindBuffer(GLenum target, unsigned int id);
         void bindBufferBase(GLenum target, unsigned int index, unsigned int id);
         void bindVertexArray(unsigned int id);
+
+        void activateTexUnit(unsigned int unit);
+        void bindTexture(GLenum target, unsigned int unit, unsigned int id);
+
         void useProgram(unsigned int id);
 
         void setViewport(glm::uvec2 size);
+        glm::uvec2 getViewport();
 
         void enable(GLenum option);
         void disable(GLenum option);
+        void setDepthFunc(GLenum option);
     protected:
         float deltaTime;
         float prevTime;
     private:
         glm::uvec2 viewportSize;
+
+        GLenum depthFunc;
 
         static void initGLFW();
         static void initGLAD();

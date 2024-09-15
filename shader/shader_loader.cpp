@@ -63,7 +63,7 @@ void ShaderLoader::checkCompile(unsigned int id, std::string type) {
     glGetShaderiv(id, GL_COMPILE_STATUS, &success);
     if(!success) {
         glGetShaderInfoLog(id, 512, NULL, infoLog);
-        std::runtime_error(std::format("Failed to compile {} shader: {}", type, infoLog));
+        throw std::runtime_error(std::format("Failed to compile {} shader: {}", type, infoLog));
     }
 }
 
@@ -86,7 +86,7 @@ void ShaderLoader::checkLink(unsigned int id) {
     glGetProgramiv(id, GL_LINK_STATUS, &success); 
     if(!success) {
         glGetProgramInfoLog(id, 512, NULL, infoLog);
-        std::runtime_error(std::format("Failed to link shader: {}", infoLog));
+        throw std::runtime_error(std::format("Failed to link shader: {}", infoLog));
     }
 }
 

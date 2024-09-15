@@ -1,10 +1,10 @@
 #include "event_handler.h"
 #include <iostream>
 #include <GLFW/glfw3.h>
+#include <thread>
 
 void EventHandler::framebufferSizeCallback(GLFWwindow *window, int width, int height) {
-    glm::uvec2 size(width, height);
-    getContext().setViewport(size);
+    getContext().setViewport({width, height});
 }
 
 
@@ -40,6 +40,12 @@ void EventHandler::keyboardCallback(GLFWwindow* window, int key, int scancode, i
 void EventHandler::processKeysHeldDown(GLFWwindow* window) {
     for(auto ptr: keyHoldListeners) {
         ptr->onKeyHold(keyboardState);
+    }
+}
+
+void EventHandler::processFrameEnd(GLFWwindow* window) {
+    for(auto ptr: frameListeners) {
+        ptr->onFrameEnd();
     }
 }
 
@@ -85,9 +91,10 @@ void EventHandler::calcDeltaTime() {
 }
 
 void EventHandler::pollEvents() {
-    calcDeltaTime();
     glfwPollEvents();
+    calcDeltaTime();
     processKeysHeldDown(window);
+    processFrameEnd(window);
 }
 
 void EventHandler::addListener(CursorListener* l) {
@@ -102,4 +109,7 @@ void EventHandler::addListener(KeyHoldListener* l) {
 }
 void EventHandler::addListener(MouseClickListener* l) {
     mouseListeners.push_back(l);
+}
+void EventHandler::addListener(FrameListener* l) {
+    frameListeners.push_back(l);
 }

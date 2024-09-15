@@ -10,6 +10,7 @@ State::State(std::string title, glm::uvec2 size) {
 
     viewportSize = size;
     hack[0] = this;
+    for(int i = 0; i < 128; i++) texUnitBindings[i] = 0;
 }
 
 State& State::getContext() {
@@ -67,6 +68,21 @@ void State::bindVertexArray(unsigned int id) {
     }
 }
 
+void State::bindTexture(GLenum target, unsigned int unit, unsigned int id) {
+    if(texUnitBindings[unit] != id) {
+        activateTexUnit(unit);
+        glBindTexture(target, id);
+        texUnitBindings[unit] = id;
+    }
+}
+
+void State::activateTexUnit(unsigned int unit) {
+    if(activeTexUnit != unit) {
+        glActiveTexture(GL_TEXTURE0 + unit);
+        activeTexUnit = unit;
+    }
+}
+
 void State::enable(GLenum option) {
     if(enabled[option] == false) {
         glEnable(option);
@@ -91,4 +107,15 @@ void State::useProgram(unsigned int id) {
 void State::setViewport(glm::uvec2 size) {
     glViewport(0, 0, size.x, size.y);
     this->viewportSize = size;
+}
+
+glm::uvec2 State::getViewport() {
+    return viewportSize;
+}
+
+void State::setDepthFunc(GLenum option) {
+    if(depthFunc != option) {
+        depthFunc = option;
+        glDepthFunc(option);
+    }
 }

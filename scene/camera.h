@@ -7,13 +7,14 @@
 
 #include "event_handler.h"
 
-class Camera : CursorListener, KeyHoldListener {
+class Camera : CursorListener, KeyHoldListener, FrameListener {
     public:
         Camera(glm::vec3 position, glm::vec3 direction = glm::vec3(1.0, 0.0, 0.0), glm::vec3 up = glm::vec3(0.0, 1.0, 0.0));
 
         Camera() : position(0.0, 0.0, 0.0), direction(1.0, 0.0, 0.0), up(0.0, 1.0, 0.0) {
             EventHandler::addListener((CursorListener*)this);
             EventHandler::addListener((KeyHoldListener*)this);
+            EventHandler::addListener((FrameListener*)this);
             calcPitchYaw(this->direction);
         }
 
@@ -41,6 +42,7 @@ class Camera : CursorListener, KeyHoldListener {
 
         virtual void onCursorMove(Cursor cursor) override;
         virtual void onKeyHold(const bool keysHeld[]) override;
+        virtual void onFrameEnd() override;
 
     private:
         float fov = 90.0;
@@ -50,6 +52,9 @@ class Camera : CursorListener, KeyHoldListener {
         glm::vec3 position;
         glm::vec3 direction;
         glm::vec3 up;
+
+        glm::vec2 dirOffset;
+        glm::vec3 posOffset;
 
         float yaw;
         float pitch;

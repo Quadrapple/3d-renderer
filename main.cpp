@@ -24,15 +24,13 @@
 int wWidth = 800;
 int wHeight = 600;
 
-bool keyPressed = false;
-
 static EventHandler *ctx;
 Scene *scene;
 Camera *camera;
 
 struct Framebuffer {
     unsigned int buf;
-    unsigned int color;
+    Texture color;
     unsigned int rbo;
 };
 
@@ -49,8 +47,10 @@ class ControlKeyListener : public KeyPressListener {
                 case GLFW_KEY_P:
                     if(keyPressed) {
                         ctx->enableMouse();
+                        ctx->setCursorMode(GLFW_CURSOR_DISABLED);
                     } else {
                         ctx->disableMouse();
+                        ctx->setCursorMode(GLFW_CURSOR_NORMAL);
                     }
                     keyPressed  = !keyPressed;
                     break;
@@ -115,15 +115,9 @@ Framebuffer createFramebuffer() {
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
     //Create a texture and attach as a color attachment to the framebuffer
-    unsigned int colorBuffer;
-    glGenTextures(1, &colorBuffer);
-    glBindTexture(GL_TEXTURE_2D, colorBuffer);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, wWidth, wHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorBuffer, 0);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    Texture colorMap(GL_TEXTURE_2D, GL_RGB, {wWidth, wHeight}, GL_RGB, nullptr);
+    colorMap.bind(0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorMap.getId(), 0);
 
     //Create a renderbuffer object to hold depth and stencil buffers
     unsigned int rboDepthStencil;
@@ -135,11 +129,11 @@ Framebuffer createFramebuffer() {
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rboDepthStencil);
 
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-            std::cout << "ERROR! MAIN_FRAMEBUFFER::INCOMPLETE\n";
+            std::cout << "ERROR! PIXEL_FRAMEBUFFER::INCOMPLETE\n";
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    return Framebuffer{framebuffer, colorBuffer, rboDepthStencil};
+    return Framebuffer{framebuffer, colorMap, rboDepthStencil};
 }
 
 Framebuffer createFramebufferMultisampled() {
@@ -149,15 +143,11 @@ Framebuffer createFramebufferMultisampled() {
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
 
     //Create a texture and attach as a color attachment to the framebuffer
-    unsigned int colorBuffer;
-    glGenTextures(1, &colorBuffer);
-    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, colorBuffer);
-
-    glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_RGB, wWidth, wHeight, GL_TRUE);
-    glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, colorBuffer, 0);
-    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
+    Texture colorMap(GL_TEXTURE_2D_MULTISAMPLE, GL_RGB, {wWidth, wHeight}, 4, true);
+    colorMap.bind(0);
+    //glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, colorMap.getId());
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, colorMap.getId(), 0);
+    //glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
 
     //Create a renderbuffer object to hold depth and stencil buffers
     unsigned int rboDepthStencil;
@@ -169,11 +159,11 @@ Framebuffer createFramebufferMultisampled() {
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rboDepthStencil);
 
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-            std::cout << "ERROR! MAIN_FRAMEBUFFER::INCOMPLETE\n";
+            std::cout << "ERROR! MULTISAMPLED_FRAMEBUFFER::INCOMPLETE\n";
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    return Framebuffer{framebuffer, colorBuffer, rboDepthStencil};
+    return Framebuffer{framebuffer, colorMap, rboDepthStencil};
 }
 
 float floatRandom() {
@@ -187,8 +177,9 @@ int main(int argc, char *argv[]) {
 
     cl = new ControlKeyListener();
 
-    glDepthFunc(GL_LEQUAL);
-    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
+    ctx->setDepthFunc(GL_LEQUAL);
+
+    //glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
 
     //ImGui setup
     IMGUI_CHECKVERSION();
@@ -204,9 +195,10 @@ int main(int argc, char *argv[]) {
 
     //Load shaders, models
     Shader flatLight("glsl/flatLight.vert", "glsl/flatLight.frag");
+    Shader flatLightTextured("glsl/flatLight.vert", "glsl/simpleTexture.frag");
     Shader gridShader("glsl/grid.vert", "glsl/color.frag");
     Shader post("glsl/post.vert", "glsl/post.frag");
-    //Model backpack("backpack/backpack.obj");
+    Model backpack("backpack/backpack.obj");
     Model asteroid("asteroid/asteroid_centered.obj");
 
     //Bind the shader's UB to 0
@@ -234,10 +226,12 @@ int main(int argc, char *argv[]) {
 
     std::vector<Object> objects;
     objects.reserve(512);
+    objects.push_back(Object(&backpack, glm::vec3(0.0)));
     for(int i = 0; i < n; i += 3) {
         objects.push_back(Object(&asteroid, glm::vec3(pos[i], pos[i + 1], pos[i + 2])));
     }
-    for(int i = 0; i < objects.size(); i++) {
+    scene->addInstancedObject(objects[0], flatLightTextured);
+    for(int i = 1; i < objects.size(); i++) {
         scene->addInstancedObject(objects[i], flatLight);
     }
 
@@ -269,6 +263,9 @@ int main(int argc, char *argv[]) {
     char filename[64];
     for(int i = 0; i < 64; i++) filename[i] = ' ';
 
+    int c = 0;
+    glfwSwapInterval(1);
+
     VertexArray grid = createGrid(l);
     while(!glfwWindowShouldClose(ctx->window)) {
         //ImGui render----------------------------
@@ -285,22 +282,26 @@ int main(int argc, char *argv[]) {
                 scene->addInstancedObject(*obj, flatLight);
             }
             ImGui::SameLine();
-            ImGui::Text("%.6f", ctx->getDeltaTime());
+            ImGui::Text("%.6f", ctx->getDeltaTime() * 1000);
             ImGui::End();
         }
         //----------------------------------------
+        //
+        //There's likely an issue with the drivers (disappears in RenderDoc), so the event handling has to come with some delay after glfwSwapBuffers
+        ctx->pollEvents();
 
         //Render to framebuffer-------------------
         glBindFramebuffer(GL_FRAMEBUFFER, multiFb.buf);
+        glViewport(0, 0, 800, 600);
 
         glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 
         scene->render();
         drawLinesArray(grid, gridShader, l);
         //----------------------------------------
 
+        ctx->setViewport(ctx->getViewport());
         //Render to screen------------------------
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, pixelFb.buf);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, multiFb.buf);
@@ -308,12 +309,12 @@ int main(int argc, char *argv[]) {
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         screenQuad.bind();
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, pixelFb.color);
+        pixelFb.color.bind(0);
+        post.setInt("screenTexture", 0);
 
         post.use();
         glDisable(GL_DEPTH_TEST);
@@ -325,7 +326,7 @@ int main(int argc, char *argv[]) {
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        ctx->pollEvents();
+
         glfwSwapBuffers(ctx->window);
     }
 

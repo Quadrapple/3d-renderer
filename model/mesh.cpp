@@ -1,8 +1,9 @@
-#include "mesh.h"
 
+#include "mesh.h"
+#include <iostream>
 #include "../inner/vao.h"
 
-Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures) {
+Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<std::shared_ptr<Texture>> textures) {
     this->vertices = vertices;
     this->indices = indices;
     this->textures = textures;
@@ -26,10 +27,8 @@ void Mesh::drawInstanced(Shader &shader, std::vector<glm::mat4> modelMatrices) {
     shader.use();
 
     for(int i = 0; i < textures.size(); i++) {
-        glActiveTexture(GL_TEXTURE0 + i);
-
         std::string name;
-        switch (textures[i].type) {
+        switch (textures[i]->mapType) {
             case DIFFUSE:
                 name = "diffuse_map" + std::to_string(diffuseNr);
                 diffuseNr++;
@@ -41,17 +40,16 @@ void Mesh::drawInstanced(Shader &shader, std::vector<glm::mat4> modelMatrices) {
         }
 
         shader.setInt("material." + name, i);
-        glBindTexture(GL_TEXTURE_2D, textures[i].id);
+        textures[i]->bind(i);
     }
 
-    glActiveTexture(GL_TEXTURE0);
+    //glActiveTexture(GL_TEXTURE0);
     for(int i = 0; i < modelMatrices.size(); i++) {
         shader.setMat4("models[" + std::to_string(i) + "]", modelMatrices[i]);
     }
 
     vao.bind();
     glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0, modelMatrices.size());
-    glBindVertexArray(0);
 }
 
 void Mesh::draw(Shader &shader) {
@@ -60,10 +58,10 @@ void Mesh::draw(Shader &shader) {
     shader.use();
 
     for(int i = 0; i < textures.size(); i++) {
-        glActiveTexture(GL_TEXTURE0 + i);
+        textures[i]->bind(i);
 
         std::string name;
-        switch (textures[i].type) {
+        switch (textures[i]->mapType) {
             case DIFFUSE:
                 name = "diffuse_map" + std::to_string(diffuseNr);
                 diffuseNr++;
@@ -75,9 +73,8 @@ void Mesh::draw(Shader &shader) {
         }
 
         shader.setInt("material." + name, i);
-        glBindTexture(GL_TEXTURE_2D, textures[i].id);
     }
-    glActiveTexture(GL_TEXTURE0);
+    //glActiveTexture(GL_TEXTURE0);
 
     vao.bind();
     glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);

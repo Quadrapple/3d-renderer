@@ -17,6 +17,7 @@
 class Model {
     public:
         Model(std::string filename);
+        Model(std::vector<Mesh> meshes, std::string directory);
         void draw(Shader &shader);
 
         void drawInstanced(Shader &shader, std::vector<glm::mat4> modelMatrices);
@@ -24,16 +25,6 @@ class Model {
     private:
         std::string directory;
         std::vector<Mesh> meshes;
-        std::vector<Texture> loadedTextures;
-
-        void loadModel(std::string filename);
-
-        void processNode(aiNode *node, const aiScene *scene);
-        Mesh processMesh(aiMesh *mesh, const aiScene *scene);
-
-        std::vector<Texture> loadMaterial(aiMaterial *mat, aiTextureType type, TextureType typeName);
-        unsigned int textureFromFile(std::string path);
-        inline unsigned int loadTexture(std::string filename);
 };
 
 #endif

@@ -91,15 +91,15 @@ void Camera::checkPitch() {
 
 void Camera::moveForward(float distance) {
     glm::vec3 xzDirection = glm::normalize(glm::vec3(direction.x, 0.0f, direction.z));
-    position += xzDirection * distance;
+    posOffset += xzDirection * distance;
 }
 
 void Camera::moveRight(float distance) {
-    position += glm::normalize(glm::cross(direction, up)) * distance;
+    posOffset += glm::normalize(glm::cross(direction, up)) * distance;
 }
 
 void Camera::moveUp(float distance) {
-    position += up * distance;
+    posOffset += up * distance;
 }
 
 glm::mat4 Camera::viewMatrix() {
@@ -123,7 +123,8 @@ void Camera::onCursorMove(Cursor cursor) {
     float xOffset = cursor.pos.x - cursor.prevPos.x;
     float yOffset = cursor.prevPos.y - cursor.pos.y;
 
-    changeDirection(xOffset * sensitivity, yOffset * sensitivity);
+    dirOffset.x += xOffset * sensitivity;
+    dirOffset.y += yOffset * sensitivity;
 }
 
 void Camera::onKeyHold(const bool keysHeld[]) {
@@ -143,6 +144,13 @@ void Camera::onKeyHold(const bool keysHeld[]) {
     } else if(keysHeld[GLFW_KEY_LEFT_SHIFT]) {
         moveUp(-cameraSpeed);
     }
+}
+
+void Camera::onFrameEnd() {
+    changeDirection(dirOffset.x, dirOffset.y);
+    position += posOffset;
+    dirOffset = glm::vec2(0.0);
+    posOffset = glm::vec3(0.0);
 }
 
 void Camera::debug() {
