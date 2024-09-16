@@ -22,6 +22,8 @@ class Model {
 
         void drawInstanced(Shader &shader, std::vector<glm::mat4> modelMatrices);
 
+        std::string getDirectory() const;
+
     private:
         std::string directory;
         std::vector<Mesh> meshes;

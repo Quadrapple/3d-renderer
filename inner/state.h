@@ -47,9 +47,10 @@ class State {
         unsigned int boundVaoID = 0;
         unsigned int usedShaderID = 0;
         unsigned int activeTexUnit = 0;
+        unsigned int boundFramebufID = 0;
 
-        static const unsigned int MAJOR_VER = 4;
-        static const unsigned int MINOR_VER = 0;
+        static const unsigned int MAJOR_VER = 3;
+        static const unsigned int MINOR_VER = 3;
 
         static inline std::unordered_map<unsigned int, State*> hack;
         static State& getContext();
@@ -59,6 +60,7 @@ class State {
         void bindBuffer(GLenum target, unsigned int id);
         void bindBufferBase(GLenum target, unsigned int index, unsigned int id);
         void bindVertexArray(unsigned int id);
+        void bindFramebuffer(unsigned int id);
 
         void activateTexUnit(unsigned int unit);
         void bindTexture(GLenum target, unsigned int unit, unsigned int id);

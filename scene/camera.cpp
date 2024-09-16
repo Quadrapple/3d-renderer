@@ -154,6 +154,6 @@ void Camera::onFrameEnd() {
 }
 
 void Camera::debug() {
-    //std::cout << "POS: " << position.x << ", " << position.y << ", " << position.z << std::endl;
-    std::cout << "DIR: " << direction.x << ", " << direction.y << ", " << direction.z << " | YAW: " << yaw << ", PIT: " << pitch << std::endl;
+    std::cout << "POS: " << position.x << ", " << position.y << ", " << position.z << std::endl;
+    std::cout << "DIR: " << direction.x << ", " << direction.y << ", " << direction.z << " | YAW: " << yaw << ", PIT: " << pitch << std::endl << "===" << std::endl;
 }

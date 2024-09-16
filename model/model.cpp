@@ -15,6 +15,10 @@ void Model::drawInstanced(Shader &shader, std::vector<glm::mat4> modelMatrices) 
     }
 }
 
+std::string Model::getDirectory() const {
+    return directory;
+}
+
 Model::Model(std::string path) {
     *this = ModelLoader::load(path);
 }

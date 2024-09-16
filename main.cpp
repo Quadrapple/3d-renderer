@@ -14,7 +14,7 @@
 #include "scene/camera.h"
 #include "scene/scene.h"
 #include "inner/buffer.h"
-#include "inner/state.h"
+#include "render_target.h"
 #include "inner/vao.h"
 
 #include "imgui/imgui.h"
@@ -108,34 +108,6 @@ VertexArray createGrid(int sideLen) {
     return vao;
 }
 
-Framebuffer createFramebuffer() {
-    //Create the framebuffer
-    unsigned int framebuffer;
-    glGenFramebuffers(1, &framebuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-
-    //Create a texture and attach as a color attachment to the framebuffer
-    Texture colorMap(GL_TEXTURE_2D, GL_RGB, {wWidth, wHeight}, GL_RGB, nullptr);
-    colorMap.bind(0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorMap.getId(), 0);
-
-    //Create a renderbuffer object to hold depth and stencil buffers
-    unsigned int rboDepthStencil;
-    glGenRenderbuffers(1, &rboDepthStencil);
-    glBindRenderbuffer(GL_RENDERBUFFER, rboDepthStencil);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, wWidth, wHeight);
-    glBindRenderbuffer(GL_RENDERBUFFER, 0);
-
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rboDepthStencil);
-
-    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-            std::cout << "ERROR! PIXEL_FRAMEBUFFER::INCOMPLETE\n";
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    return Framebuffer{framebuffer, colorMap, rboDepthStencil};
-}
-
 Framebuffer createFramebufferMultisampled() {
     //Create tyhe framebuffer
     unsigned int framebuffer;
@@ -193,6 +165,11 @@ int main(int argc, char *argv[]) {
 
     //Scene setup----------------------------------
 
+    camera = new Camera();
+
+    camera->setPosition(glm::vec3(0.0f, 0.0f, 6.0f));
+    camera->setDirection(glm::vec3(0.0f, 0.0f, -1.0f));
+
     //Load shaders, models
     Shader flatLight("glsl/flatLight.vert", "glsl/flatLight.frag");
     Shader flatLightTextured("glsl/flatLight.vert", "glsl/simpleTexture.frag");
@@ -207,11 +184,6 @@ int main(int argc, char *argv[]) {
     gridShader.bindUniformBlock("Matrices", 0);
     
     scene = new Scene();
-    camera = new Camera();
-
-    camera->setPosition(glm::vec3(0.0f, 0.0f, 6.0f));
-    camera->setDirection(glm::vec3(0.0f, 0.0f, -1.0f));
-
     scene->useCamera(camera);
 
     const int n = 3*4;
@@ -236,8 +208,8 @@ int main(int argc, char *argv[]) {
     }
 
 
-    Framebuffer multiFb = createFramebufferMultisampled(); //MSAA framebuffer
-    Framebuffer pixelFb = createFramebuffer();
+    RenderTarget pixelFb({wWidth, wHeight});
+    RenderTarget multiFb({wWidth, wHeight}, 4);
 
     //Screen quad-------------------------------------
     float quadVertices[] = {
@@ -286,34 +258,29 @@ int main(int argc, char *argv[]) {
             ImGui::End();
         }
         //----------------------------------------
-        //
-        //There's likely an issue with the drivers (disappears in RenderDoc), so the event handling has to come with some delay after glfwSwapBuffers
+
+        //Putting pollEvents here prevents weird flickering, so it has to come with some delay after glfwSwapBuffers
+        //That's likely an issue with the drivers (disappears in RenderDoc)
         ctx->pollEvents();
 
         //Render to framebuffer-------------------
-        glBindFramebuffer(GL_FRAMEBUFFER, multiFb.buf);
-        glViewport(0, 0, 800, 600);
+        multiFb.bind();
 
         glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         scene->render();
         drawLinesArray(grid, gridShader, l);
+        ctx->bindVertexArray(0);
         //----------------------------------------
 
-        ctx->setViewport(ctx->getViewport());
         //Render to screen------------------------
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, pixelFb.buf);
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, multiFb.buf);
-        glBlitFramebuffer(0, 0, wWidth, wHeight, 0, 0, wWidth, wHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+        pixelFb.blit(multiFb);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        ctx->bindFramebuffer(0);
 
         screenQuad.bind();
-        pixelFb.color.bind(0);
+        pixelFb.getColor(0).bind(0);
         post.setInt("screenTexture", 0);
 
         post.use();
@@ -321,8 +288,6 @@ int main(int argc, char *argv[]) {
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glEnable(GL_DEPTH_TEST);
         //----------------------------------------
-
-        glBindVertexArray(0);
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

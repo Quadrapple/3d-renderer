@@ -2,21 +2,20 @@
 
 #include <format>
 #include <iostream>
+#include <memory>
 
 std::shared_ptr<Texture> TextureLoader::load(std::string path, GLenum type) {
     const auto& texPtr = loadedTextures.find(path);
     if(texPtr != loadedTextures.end() && !texPtr->second.expired()) {
-        //std::cout << "Found already " << path << std::endl;
         return texPtr->second.lock(); //Avoids loading already loaded textures
     } else {
-        //std::cout << "Loading new " << path << std::endl;
-        auto res = std::make_shared<Texture>(loadFromFile(path, type));
+        auto res = loadFromFile(path, type);
         loadedTextures.emplace(path, std::weak_ptr<Texture>(res));
         return res;
     }
 }
 
-Texture TextureLoader::loadFromFile(std::string path, GLenum type) {
+std::shared_ptr<Texture> TextureLoader::loadFromFile(std::string path, GLenum type) {
     //Loading texture
     int width;
     int height;
@@ -43,7 +42,7 @@ Texture TextureLoader::loadFromFile(std::string path, GLenum type) {
             break;
     }
 
-    Texture texture(type, format, {width, height}, format, data);
+    auto texture = std::make_shared<Texture>(type, format, glm::uvec2(width, height), format, data, path);
 
     stbi_image_free(data);
 

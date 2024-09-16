@@ -39,11 +39,10 @@ void Mesh::drawInstanced(Shader &shader, std::vector<glm::mat4> modelMatrices) {
                 break;
         }
 
-        shader.setInt("material." + name, i);
         textures[i]->bind(i);
+        shader.setInt("material." + name, i);
     }
 
-    //glActiveTexture(GL_TEXTURE0);
     for(int i = 0; i < modelMatrices.size(); i++) {
         shader.setMat4("models[" + std::to_string(i) + "]", modelMatrices[i]);
     }
@@ -74,9 +73,7 @@ void Mesh::draw(Shader &shader) {
 
         shader.setInt("material." + name, i);
     }
-    //glActiveTexture(GL_TEXTURE0);
 
     vao.bind();
     glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
-    glBindVertexArray(0);
 }

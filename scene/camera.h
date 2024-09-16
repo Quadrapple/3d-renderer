@@ -53,8 +53,8 @@ class Camera : CursorListener, KeyHoldListener, FrameListener {
         glm::vec3 direction;
         glm::vec3 up;
 
-        glm::vec2 dirOffset;
-        glm::vec3 posOffset;
+        glm::vec2 dirOffset = glm::vec2(0.0);
+        glm::vec3 posOffset = glm::vec3(0.0);
 
         float yaw;
         float pitch;

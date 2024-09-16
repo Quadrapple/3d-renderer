@@ -12,7 +12,7 @@ class TextureLoader {
 
     private:
         static inline std::unordered_map<std::string, std::weak_ptr<Texture>> loadedTextures; //Maps paths to textures
-        static Texture loadFromFile(std::string path, GLenum type);
+        static std::shared_ptr<Texture> loadFromFile(std::string path, GLenum type);
 
 };
 

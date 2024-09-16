@@ -18,17 +18,19 @@ class Texture {
         Texture();
         Texture(std::string path);
 
-        Texture(GLenum type, GLenum internalFormat, glm::uvec2 size, GLenum origFormat, const unsigned char *data);
-
+        Texture(GLenum type, GLenum internalFormat, glm::uvec2 size, GLenum origFormat, const unsigned char *data, std::string path = "");
         //Multisampled
         Texture(GLenum type, GLenum internalFormat, glm::uvec2 size, unsigned int samples, bool fixedSamplePosition);
 
-        unsigned int getId();
-        std::string getPath();
-        GLenum getType();
+        ~Texture();
+
+        unsigned int getId() const;
+        std::string getPath() const;
+        GLenum getType() const;
+        glm::uvec2 getSize() const;
         MapType mapType;
 
-        void bind(unsigned int unit);
+        void bind(unsigned int unit) const;
         void texParameter(GLenum param, GLenum value);
 
         void texImage2D(GLenum internalFormat, GLenum origFormat, const unsigned char *data);

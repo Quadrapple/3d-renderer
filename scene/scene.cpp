@@ -15,10 +15,10 @@ void Scene::useCamera(Camera *camera) {
 
 void Scene::addInstancedObject(Object &object, Shader &shader) {
     Drawable key = {object.model, &shader};
-    drawables.push_back(key);
     const auto vector = instances.find(key);
 
     if(vector == instances.end()) {
+        drawables.push_back(key);
         std::vector<Object*>* newVector = new std::vector<Object*>();
         newVector->reserve(128);
         newVector->push_back(&object);
@@ -26,11 +26,10 @@ void Scene::addInstancedObject(Object &object, Shader &shader) {
         return;
     }
     if(vector->second->size() >= 128) {
-        std::cout << "ERROR! Cannot add more objects to model/shader combination!" << std::endl;
+        throw std::runtime_error("Cannot add more objects to model/shader combination!");
         return;
     }
     vector->second->push_back(&object);
-    std::cout << "Object added" << std::endl;
 }
 
 void Scene::render() {

@@ -83,6 +83,13 @@ void State::activateTexUnit(unsigned int unit) {
     }
 }
 
+void State::bindFramebuffer(unsigned int id) {
+    if(boundFramebufID != id) {
+        glBindFramebuffer(GL_FRAMEBUFFER, id);
+        boundFramebufID = id;
+    }
+}
+
 void State::enable(GLenum option) {
     if(enabled[option] == false) {
         glEnable(option);

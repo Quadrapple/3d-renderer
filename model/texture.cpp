@@ -1,8 +1,13 @@
 #include "texture.h"
 #include "state.h"
+#include "texture_loader.h"
 #include <iostream>
 
 Texture::Texture() : id(0), mapType{DIFFUSE}, type{GL_TEXTURE_2D}, path(NULL), size(0) {}
+
+Texture::Texture(std::string path) {
+    *this = *TextureLoader::load(path, GL_TEXTURE_2D);
+}
 
 Texture::Texture(GLenum type, GLenum internalFormat, glm::uvec2 size, unsigned int samples, bool fixedSamplePosition) : id(0), type(type), size(size) {
     glGenTextures(1, &id);
@@ -13,7 +18,7 @@ Texture::Texture(GLenum type, GLenum internalFormat, glm::uvec2 size, unsigned i
     glTexParameteri(type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 }
 
-Texture::Texture(GLenum type, GLenum internalFormat, glm::uvec2 size, GLenum origFormat, const unsigned char *data) : id(0), type(type), size(size) {
+Texture::Texture(GLenum type, GLenum internalFormat, glm::uvec2 size, GLenum origFormat, const unsigned char *data, std::string path) : id(0), type(type), size(size),path(path) {
     glGenTextures(1, &id);
 
     texImage2D(internalFormat, origFormat, data);
@@ -25,7 +30,7 @@ Texture::Texture(GLenum type, GLenum internalFormat, glm::uvec2 size, GLenum ori
     glTexParameteri(type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 }
 
-void Texture::bind(unsigned int unit) {
+void Texture::bind(unsigned int unit) const {
     State::getContext().bindTexture(type, unit, id);
 }
 
@@ -44,14 +49,22 @@ void Texture::texImage2DMult(GLenum internalFormat, unsigned int samples, bool f
     glTexImage2DMultisample(type, samples, internalFormat, size.x, size.y, fixedSampleLocations);
 }
 
-unsigned int Texture::getId() {
+unsigned int Texture::getId() const {
     return id;
 }
 
-std::string Texture::getPath() {
+std::string Texture::getPath() const {
     return path;
 }
 
-GLenum Texture::getType() {
+GLenum Texture::getType() const {
     return type;
+}
+
+glm::uvec2 Texture::getSize() const {
+    return size;
+}
+
+Texture::~Texture() {
+    glDeleteTextures(1, &id);
 }
